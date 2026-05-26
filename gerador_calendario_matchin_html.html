@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gerador de Calendário de Veiculação — Matchin</title>
+
+  <!-- Bibliotecas externas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <style>
+    :root {
+      --matchin-blue: #0b3cff;
+      --matchin-dark: #111827;
+      --matchin-muted: #6b7280;
+      --matchin-light: #f5f7fb;
+      --matchin-border: #e5e7eb;
+      --matchin-card: #ffffff;
+      --danger: #dc2626;
+      --success: #16a34a;
+      --warning: #f59e0b;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--matchin-light);
+      color: var(--matchin-dark);
+    }
+
+    header {
+      background: linear-gradient(135deg, var(--matchin-blue), #051b78);
+      color: #fff;
+      padding: 28px 32px;
+    }
+
+    header h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.2;
+    }
+
+    header p {
+      margin: 0;
+      opacity: 0.9;
+      font-size: 15px;
+    }
+
+    main {
+      padding: 28px 32px 60px;
+      display: grid;
+      grid-template-columns: 430px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .panel,
+    .preview {
+      background: var(--matchin-card);
+      border: 1px solid var(--matchin-border);
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    }
+
+    .panel {
+      padding: 22px;
+      position: sticky;
+      top: 18px;
+      max-height: calc(100vh - 36px);
+      overflow: auto;
+    }
+
+    .preview {
+      padding: 0;
+      overflow: hidden;
+    }
+
+    section {
+      margin-bottom: 24px;
+    }
+
+    h2 {
+      font-size: 17px;
+      margin: 0 0 14px;
+      color: var(--matchin-dark);
+    }
+
+    h3 {
+      font-size: 14px;
+      margin: 18px 0 10px;
+      color: var(--matchin-dark);
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      color: #374151;
+      margin-bottom: 6px;
+    }
+
+    input,
+    select,
+    textarea {
+      width: 100%;
+      border: 1px solid var(--matchin-border);
+      border-radius: 10px;
+      padding: 10px 11px;
+      font-size: 14px;
+      outline: none;
+      background: #fff;
+      color: var(--matchin-dark);
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--matchin-blue);
+      box-shadow: 0 0 0 3px rgba(11, 60, 255, 0.12);
+    }
+
+    textarea {
+      min-height: 88px;
+      resize: vertical;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .field {
+      margin-bottom: 12px;
+    }
+
+    .hint {
+      display: block;
+      font-size: 11px;
+      color: var(--matchin-muted);
+      margin-top: 5px;
+      line-height: 1.35;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 14px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      transition: 0.2s ease;
+    }
+
+    button.primary {
+      background: var(--matchin-blue);
+      color: #fff;
+    }
+
+    button.secondary {
+      background: #eef2ff;
+      color: var(--matchin-blue);
+    }
+
+    button.neutral {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    button.danger {
+      background: #fee2e2;
+      color: var(--danger);
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(0.98);
+    }
+
+    .content-row {
+      border: 1px solid var(--matchin-border);
+      border-radius: 14px;
+      padding: 12px;
+      background: #fafafa;
+      margin-bottom: 10px;
+    }
+
+    .content-row-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .content-row-header strong {
+      font-size: 13px;
+    }
+
+    .manual-item {
+      border: 1px solid var(--matchin-border);
+      border-radius: 12px;
+      padding: 12px;
+      margin-bottom: 10px;
+      background: #fff;
+    }
+
+    .empty-state {
+      border: 1px dashed #cbd5e1;
+      border-radius: 14px;
+      padding: 18px;
+      text-align: center;
+      color: var(--matchin-muted);
+      font-size: 13px;
+      background: #f8fafc;
+    }
+
+    #pdfArea {
+      background: #fff;
+      padding: 34px;
+      min-height: 1120px;
+    }
+
+    .pdf-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 24px;
+      padding-bottom: 22px;
+      border-bottom: 3px solid var(--matchin-blue);
+      margin-bottom: 24px;
+    }
+
+    .pdf-logo-wrap {
+      width: 150px;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .pdf-logo-wrap img {
+      max-width: 150px;
+      max-height: 72px;
+      object-fit: contain;
+    }
+
+    .logo-placeholder {
+      background: var(--matchin-blue);
+      color: #fff;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      border-radius: 12px;
+      padding: 14px 18px;
+      font-size: 18px;
+    }
+
+    .pdf-title h1 {
+      margin: 0 0 8px;
+      font-size: 26px;
+      line-height: 1.15;
+      color: var(--matchin-dark);
+    }
+
+    .pdf-title p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--matchin-muted);
+      line-height: 1.45;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 22px;
+    }
+
+    .meta-card {
+      border: 1px solid var(--matchin-border);
+      border-radius: 14px;
+      padding: 12px;
+      background: #f8fafc;
+    }
+
+    .meta-card span {
+      display: block;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--matchin-muted);
+      margin-bottom: 5px;
+      font-weight: 700;
+    }
+
+    .meta-card strong {
+      font-size: 13px;
+      color: var(--matchin-dark);
+      line-height: 1.35;
+    }
+
+    .pdf-section-title {
+      margin: 28px 0 12px;
+      font-size: 18px;
+      color: var(--matchin-dark);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pdf-section-title::before {
+      content: "";
+      width: 8px;
+      height: 22px;
+      border-radius: 99px;
+      background: var(--matchin-blue);
+      display: inline-block;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 14px;
+      font-size: 12px;
+    }
+
+    thead {
+      background: var(--matchin-blue);
+      color: #fff;
+    }
+
+    th,
+    td {
+      padding: 11px 10px;
+      border-bottom: 1px solid var(--matchin-border);
+      text-align: left;
+      vertical-align: top;
+      line-height: 1.35;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    tbody tr:hover {
+      background: #eef2ff;
+    }
+
+    .tag {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 4px 9px;
+      background: #eef2ff;
+      color: var(--matchin-blue);
+      font-weight: 700;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .warning-box {
+      border: 1px solid #fde68a;
+      background: #fffbeb;
+      color: #92400e;
+      border-radius: 14px;
+      padding: 12px 14px;
+      font-size: 12px;
+      line-height: 1.45;
+      margin-bottom: 16px;
+    }
+
+    .text-box {
+      border: 1px solid var(--matchin-border);
+      border-radius: 14px;
+      background: #f8fafc;
+      padding: 14px;
+      white-space: pre-wrap;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #374151;
+    }
+
+    .attachment-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .attachment-item {
+      border: 1px solid var(--matchin-border);
+      background: #fff;
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 12px;
+      color: #374151;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .footer-note {
+      margin-top: 34px;
+      padding-top: 16px;
+      border-top: 1px solid var(--matchin-border);
+      color: var(--matchin-muted);
+      font-size: 11px;
+      line-height: 1.45;
+    }
+
+    .status-line {
+      font-size: 12px;
+      color: var(--matchin-muted);
+      margin-top: 8px;
+      line-height: 1.4;
+    }
+
+    .conflict {
+      color: var(--danger);
+      font-weight: 700;
+    }
+
+    .ok {
+      color: var(--success);
+      font-weight: 700;
+    }
+
+    @media (max-width: 1100px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        position: static;
+        max-height: none;
+      }
+    }
+
+    @media print {
+      body {
+        background: #fff;
+      }
+
+      header,
+      .panel {
+        display: none;
+      }
+
+      main {
+        display: block;
+        padding: 0;
+      }
+
+      .preview {
+        border: 0;
+        box-shadow: none;
+      }
+
+      #pdfArea {
+        padding: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Gerador de Calendário de Veiculação — Matchin</h1>
+    <p>Crie calendários automáticos de postagens, ajuste manualmente e exporte em PDF para aprovação da marca.</p>
+  </header>
+
+  <main>
+    <aside class="panel">
+      <section>
+        <h2>1. Dados da campanha</h2>
+
+        <div class="field">
+          <label for="campaignName">Nome da campanha</label>
+          <input id="campaignName" placeholder="Ex: Semana do MEI — Sebrae SC" />
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label for="startDate">Início</label>
+            <input id="startDate" type="date" />
+          </div>
+          <div class="field">
+            <label for="endDate">Fim</label>
+            <input id="endDate" type="date" />
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="defaultTime">Horário padrão</label>
+          <input id="defaultTime" type="time" value="12:00" />
+          <span class="hint">Pode ser alterado individualmente depois.</span>
+        </div>
+
+        <div class="field">
+          <label for="brandBlockedDates">Datas bloqueadas pela marca</label>
+          <input id="brandBlockedDates" placeholder="Ex: 2026-06-01, 2026-06-05" />
+          <span class="hint">Separe por vírgula. Essas datas não serão usadas no agendamento automático.</span>
+        </div>
+
+        <div class="field">
+          <label for="campaignLogo">Logo da Matchin ou da campanha</label>
+          <input id="campaignLogo" type="file" accept="image/*" />
+          <span class="hint">Anexe a logo da Matchin para aparecer no PDF. Caso não anexe, entra um placeholder.</span>
+        </div>
+      </section>
+
+      <section>
+        <h2>2. Influenciadores e entregas</h2>
+        <div id="influencersContainer"></div>
+        <div class="btn-row">
+          <button class="secondary" onclick="addInfluencer()">+ Adicionar influenciador</button>
+        </div>
+      </section>
+
+      <section>
+        <h2>3. Briefing e guia</h2>
+
+        <div class="field">
+          <label for="briefingText">Briefing da campanha</label>
+          <textarea id="briefingText" placeholder="Cole aqui o briefing ou contexto principal da campanha."></textarea>
+        </div>
+
+        <div class="field">
+          <label for="guideFile">Anexar guia de produção</label>
+          <input id="guideFile" type="file" multiple />
+          <span class="hint">O PDF exportado lista os arquivos anexados. O conteúdo do arquivo não é incorporado automaticamente.</span>
+        </div>
+      </section>
+
+      <section>
+        <h2>4. Gerar e editar calendário</h2>
+        <div class="btn-row">
+          <button class="primary" onclick="generateCalendar()">Gerar calendário</button>
+          <button class="secondary" onclick="addManualPost()">+ Adicionar postagem manual</button>
+          <button class="neutral" onclick="renderPreview()">Atualizar prévia</button>
+          <button class="primary" onclick="exportPDF()">Exportar PDF</button>
+        </div>
+        <p id="statusLine" class="status-line">Preencha os dados e gere o calendário.</p>
+      </section>
+
+      <section>
+        <h2>5. Ajustes manuais</h2>
+        <div id="manualCalendarEditor" class="empty-state">Nenhuma postagem gerada ainda.</div>
+      </section>
+    </aside>
+
+    <section class="preview">
+      <div id="pdfArea">
+        <div class="pdf-header">
+          <div class="pdf-title">
+            <h1 id="pdfCampaignTitle">Calendário de Veiculação</h1>
+            <p id="pdfCampaignSubtitle">Configure uma campanha para visualizar a prévia do calendário.</p>
+          </div>
+          <div class="pdf-logo-wrap" id="pdfLogoWrap">
+            <div class="logo-placeholder">MATCHIN</div>
+          </div>
+        </div>
+
+        <div class="meta-grid">
+          <div class="meta-card">
+            <span>Campanha</span>
+            <strong id="metaCampaign">—</strong>
+          </div>
+          <div class="meta-card">
+            <span>Período</span>
+            <strong id="metaPeriod">—</strong>
+          </div>
+          <div class="meta-card">
+            <span>Total de postagens</span>
+            <strong id="metaTotalPosts">0</strong>
+          </div>
+          <div class="meta-card">
+            <span>Status</span>
+            <strong id="metaStatus">Em construção</strong>
+          </div>
+        </div>
+
+        <div id="pdfWarnings"></div>
+
+        <h2 class="pdf-section-title">Calendário sugerido</h2>
+        <div id="calendarTableWrap">
+          <div class="empty-state">O calendário aparecerá aqui depois da geração.</div>
+        </div>
+
+        <h2 class="pdf-section-title">Briefing da campanha</h2>
+        <div id="pdfBriefing" class="text-box">Nenhum briefing informado.</div>
+
+        <h2 class="pdf-section-title">Arquivos anexados</h2>
+        <div id="pdfAttachments" class="attachment-list">
+          <div class="attachment-item">
+            <span>Nenhum arquivo anexado.</span>
+            <span>—</span>
+          </div>
+        </div>
+
+        <div class="footer-note">
+          Documento gerado pela Matchin para organização e aprovação de calendário de veiculação. As datas podem ser ajustadas conforme disponibilidade dos influenciadores, aprovações de conteúdo e necessidades estratégicas da marca.
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const CONTENT_TYPES = [
+      "Reels",
+      "Reels Collab",
+      "Combo de Stories",
+      "Carrossel",
+      "TikTok",
+      "Anúncio",
+      "Repost",
+      "Cobertura",
+      "Vídeo dedicado (YouTube)",
+      "Vídeo menção (YouTube)",
+      "Newsletter"
+    ];
+
+    const BRAZIL_NATIONAL_HOLIDAYS_2026 = [
+      "2026-01-01",
+      "2026-02-16",
+      "2026-02-17",
+      "2026-04-03",
+      "2026-04-21",
+      "2026-05-01",
+      "2026-06-04",
+      "2026-09-07",
+      "2026-10-12",
+      "2026-11-02",
+      "2026-11-15",
+      "2026-11-20",
+      "2026-12-25"
+    ];
+
+    let influencers = [];
+    let scheduledPosts = [];
+    let logoDataUrl = null;
+
+    function formatDateBR(dateString) {
+      if (!dateString) return "—";
+      const [year, month, day] = dateString.split("-");
+      return `${day}/${month}/${year}`;
+    }
+
+    function parseLocalDate(dateString) {
+      const [year, month, day] = dateString.split("-").map(Number);
+      return new Date(year, month - 1, day);
+    }
+
+    function toISODate(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function getDatesBetween(start, end) {
+      const dates = [];
+      const current = parseLocalDate(start);
+      const final = parseLocalDate(end);
+
+      while (current <= final) {
+        dates.push(toISODate(current));
+        current.setDate(current.getDate() + 1);
+      }
+
+      return dates;
+    }
+
+    function isWeekend(dateString) {
+      const date = parseLocalDate(dateString);
+      const day = date.getDay();
+      return day === 0 || day === 6;
+    }
+
+    function addDays(dateString, days) {
+      const date = parseLocalDate(dateString);
+      date.setDate(date.getDate() + days);
+      return toISODate(date);
+    }
+
+    function isNextDay(dateA, dateB) {
+      return addDays(dateA, 1) === dateB || addDays(dateB, 1) === dateA;
+    }
+
+    function getBlockedDates() {
+      const brandBlockedDates = document.getElementById("brandBlockedDates").value
+        .split(",")
+        .map(item => item.trim())
+        .filter(Boolean);
+
+      return [...new Set([...BRAZIL_NATIONAL_HOLIDAYS_2026, ...brandBlockedDates])];
+    }
+
+    function getAvailableDates() {
+      const startDate = document.getElementById("startDate").value;
+      const endDate = document.getElementById("endDate").value;
+
+      if (!startDate || !endDate) return [];
+
+      const blockedDates = getBlockedDates();
+      const allDates = getDatesBetween(startDate, endDate);
+
+      const weekdays = allDates.filter(date => !blockedDates.includes(date) && !isWeekend(date));
+      const weekends = allDates.filter(date => !blockedDates.includes(date) && isWeekend(date));
+
+      return [...weekdays, ...weekends];
+    }
+
+    function addInfluencer() {
+      const id = crypto.randomUUID();
+      influencers.push({
+        id,
+        name: "",
+        notes: "",
+        contents: [{ id: crypto.randomUUID(), type: "Reels", quantity: 1 }]
+      });
+      renderInfluencers();
+    }
+
+    function removeInfluencer(id) {
+      influencers = influencers.filter(influencer => influencer.id !== id);
+      renderInfluencers();
+    }
+
+    function addContent(influencerId) {
+      const influencer = influencers.find(item => item.id === influencerId);
+      influencer.contents.push({ id: crypto.randomUUID(), type: "Reels", quantity: 1 });
+      renderInfluencers();
+    }
+
+    function removeContent(influencerId, contentId) {
+      const influencer = influencers.find(item => item.id === influencerId);
+      influencer.contents = influencer.contents.filter(content => content.id !== contentId);
+      renderInfluencers();
+    }
+
+    function updateInfluencer(id, field, value) {
+      const influencer = influencers.find(item => item.id === id);
+      influencer[field] = value;
+    }
+
+    function updateContent(influencerId, contentId, field, value) {
+      const influencer = influencers.find(item => item.id === influencerId);
+      const content = influencer.contents.find(item => item.id === contentId);
+      content[field] = field === "quantity" ? Number(value) : value;
+    }
+
+    function renderInfluencers() {
+      const container = document.getElementById("influencersContainer");
+
+      if (!influencers.length) {
+        container.innerHTML = `<div class="empty-state">Nenhum influenciador adicionado.</div>`;
+        return;
+      }
+
+      container.innerHTML = influencers.map((influencer, index) => `
+        <div class="content-row">
+          <div class="content-row-header">
+            <strong>Influenciador ${index + 1}</strong>
+            <button class="danger" onclick="removeInfluencer('${influencer.id}')">Remover</button>
+          </div>
+
+          <div class="field">
+            <label>Nome / @</label>
+            <input value="${escapeHtml(influencer.name)}" placeholder="Ex: @perfil" oninput="updateInfluencer('${influencer.id}', 'name', this.value)" />
+          </div>
+
+          <div class="field">
+            <label>Observações do influenciador</label>
+            <input value="${escapeHtml(influencer.notes)}" placeholder="Ex: preferência de horário, praça, restrição etc." oninput="updateInfluencer('${influencer.id}', 'notes', this.value)" />
+          </div>
+
+          <h3>Entregas</h3>
+          ${influencer.contents.map(content => `
+            <div class="grid-2" style="align-items: end; margin-bottom: 8px;">
+              <div>
+                <label>Formato</label>
+                <select onchange="updateContent('${influencer.id}', '${content.id}', 'type', this.value)">
+                  ${CONTENT_TYPES.map(type => `<option value="${type}" ${type === content.type ? "selected" : ""}>${type}</option>`).join("")}
+                </select>
+              </div>
+              <div>
+                <label>Quantidade</label>
+                <input type="number" min="1" value="${content.quantity}" onchange="updateContent('${influencer.id}', '${content.id}', 'quantity', this.value)" />
+              </div>
+            </div>
+            <button class="danger" style="margin-bottom: 10px;" onclick="removeContent('${influencer.id}', '${content.id}')">Remover entrega</button>
+          `).join("")}
+
+          <button class="secondary" onclick="addContent('${influencer.id}')">+ Adicionar entrega</button>
+        </div>
+      `).join("");
+    }
+
+    function expandDeliverables() {
+      const expanded = [];
+
+      influencers.forEach(influencer => {
+        const typeCounters = {};
+
+        influencer.contents.forEach(content => {
+          const quantity = Number(content.quantity || 1);
+          typeCounters[content.type] = typeCounters[content.type] || 0;
+
+          for (let i = 1; i <= quantity; i++) {
+            typeCounters[content.type] += 1;
+            const label = quantity > 1
+              ? `${content.type} ${String(typeCounters[content.type]).padStart(2, "0")}`
+              : content.type;
+
+            expanded.push({
+              id: crypto.randomUUID(),
+              influencerId: influencer.id,
+              influencerName: influencer.name || "Influenciador sem nome",
+              format: label,
+              baseFormat: content.type,
+              date: "",
+              time: document.getElementById("defaultTime").value || "12:00",
+              notes: influencer.notes || ""
+            });
+          }
+        });
+      });
+
+      return expanded;
+    }
+
+    function canPlacePost(post, date, currentSchedule) {
+      const blockedDates = getBlockedDates();
+
+      if (blockedDates.includes(date)) return false;
+
+      const sameDayReel = currentSchedule.some(item =>
+        item.date === date &&
+        isReelType(item.baseFormat) &&
+        isReelType(post.baseFormat)
+      );
+
+      if (sameDayReel) return false;
+
+      const sameInfluencerTooClose = currentSchedule.some(item =>
+        item.influencerId === post.influencerId &&
+        (item.date === date || isNextDay(item.date, date))
+      );
+
+      if (sameInfluencerTooClose) return false;
+
+      return true;
+    }
+
+    function isReelType(format) {
+      return ["Reels", "Reels Collab"].includes(format);
+    }
+
+    function generateCalendar() {
+      const campaignName = document.getElementById("campaignName").value.trim();
+      const startDate = document.getElementById("startDate").value;
+      const endDate = document.getElementById("endDate").value;
+
+      if (!campaignName || !startDate || !endDate) {
+        alert("Preencha nome, data de início e data de fim da campanha.");
+        return;
+      }
+
+      if (!influencers.length) {
+        alert("Adicione pelo menos um influenciador.");
+        return;
+      }
+
+      const availableDates = getAvailableDates();
+      const deliverables = expandDeliverables();
+      const schedule = [];
+      const unscheduled = [];
+
+      deliverables.forEach((post, index) => {
+        let placed = false;
+
+        for (const date of availableDates) {
+          if (canPlacePost(post, date, schedule)) {
+            post.date = date;
+            schedule.push(post);
+            placed = true;
+            break;
+          }
+        }
+
+        if (!placed) {
+          const fallbackDate = availableDates[index % availableDates.length] || startDate;
+          post.date = fallbackDate;
+          post.notes = `${post.notes ? post.notes + " | " : ""}Atenção: encaixe manual sugerido por falta de datas ideais.`;
+          schedule.push(post);
+          unscheduled.push(post);
+        }
+      });
+
+      scheduledPosts = schedule.sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+
+      renderManualEditor();
+      renderPreview();
+
+      const status = unscheduled.length
+        ? `${unscheduled.length} postagem(ns) precisaram de encaixe manual. Revise antes de exportar.`
+        : "Calendário gerado com sucesso, respeitando as regras principais.";
+
+      document.getElementById("statusLine").innerHTML = unscheduled.length
+        ? `<span class="conflict">${status}</span>`
+        : `<span class="ok">${status}</span>`;
+    }
+
+    function addManualPost() {
+      scheduledPosts.push({
+        id: crypto.randomUUID(),
+        influencerId: crypto.randomUUID(),
+        influencerName: "",
+        format: "Reels",
+        baseFormat: "Reels",
+        date: document.getElementById("startDate").value || "",
+        time: document.getElementById("defaultTime").value || "12:00",
+        notes: "Adicionado manualmente."
+      });
+
+      renderManualEditor();
+      renderPreview();
+    }
+
+    function removePost(id) {
+      scheduledPosts = scheduledPosts.filter(post => post.id !== id);
+      renderManualEditor();
+      renderPreview();
+    }
+
+    function updatePost(id, field, value) {
+      const post = scheduledPosts.find(item => item.id === id);
+      post[field] = value;
+
+      if (field === "format") {
+        post.baseFormat = normalizeBaseFormat(value);
+      }
+
+      renderPreview();
+    }
+
+    function normalizeBaseFormat(format) {
+      const found = CONTENT_TYPES.find(type => format.toLowerCase().includes(type.toLowerCase()));
+      return found || format;
+    }
+
+    function renderManualEditor() {
+      const editor = document.getElementById("manualCalendarEditor");
+
+      if (!scheduledPosts.length) {
+        editor.innerHTML = `<div class="empty-state">Nenhuma postagem gerada ainda.</div>`;
+        return;
+      }
+
+      editor.innerHTML = scheduledPosts.map((post, index) => `
+        <div class="manual-item">
+          <div class="content-row-header">
+            <strong>Postagem ${index + 1}</strong>
+            <button class="danger" onclick="removePost('${post.id}')">Remover</button>
+          </div>
+
+          <div class="field">
+            <label>Influenciador</label>
+            <input value="${escapeHtml(post.influencerName)}" oninput="updatePost('${post.id}', 'influencerName', this.value)" />
+          </div>
+
+          <div class="field">
+            <label>Formato</label>
+            <input value="${escapeHtml(post.format)}" oninput="updatePost('${post.id}', 'format', this.value)" />
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label>Data</label>
+              <input type="date" value="${post.date}" onchange="updatePost('${post.id}', 'date', this.value)" />
+            </div>
+            <div class="field">
+              <label>Horário</label>
+              <input type="time" value="${post.time}" onchange="updatePost('${post.id}', 'time', this.value)" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Observação</label>
+            <input value="${escapeHtml(post.notes)}" oninput="updatePost('${post.id}', 'notes', this.value)" />
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function getValidationWarnings() {
+      const warnings = [];
+      const blockedDates = getBlockedDates();
+
+      scheduledPosts.forEach(post => {
+        if (blockedDates.includes(post.date)) {
+          warnings.push(`${post.influencerName} está em data bloqueada ou feriado nacional: ${formatDateBR(post.date)}.`);
+        }
+      });
+
+      scheduledPosts.forEach((post, index) => {
+        scheduledPosts.forEach((otherPost, otherIndex) => {
+          if (index >= otherIndex) return;
+
+          if (
+            post.date === otherPost.date &&
+            isReelType(post.baseFormat) &&
+            isReelType(otherPost.baseFormat)
+          ) {
+            warnings.push(`Há mais de um Reel/Reels Collab em ${formatDateBR(post.date)}.`);
+          }
+
+          if (
+            post.influencerName &&
+            post.influencerName === otherPost.influencerName &&
+            isNextDay(post.date, otherPost.date)
+          ) {
+            warnings.push(`${post.influencerName} possui postagens em dias imediatamente seguidos: ${formatDateBR(post.date)} e ${formatDateBR(otherPost.date)}.`);
+          }
+        });
+      });
+
+      return [...new Set(warnings)];
+    }
+
+    function renderPreview() {
+      const campaignName = document.getElementById("campaignName").value.trim() || "Calendário de Veiculação";
+      const startDate = document.getElementById("startDate").value;
+      const endDate = document.getElementById("endDate").value;
+      const briefing = document.getElementById("briefingText").value.trim();
+      const guideFiles = document.getElementById("guideFile").files;
+      const sortedPosts = [...scheduledPosts].sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+      const warnings = getValidationWarnings();
+
+      document.getElementById("pdfCampaignTitle").textContent = campaignName;
+      document.getElementById("pdfCampaignSubtitle").textContent = "Calendário sugerido de veiculação para aprovação da marca.";
+      document.getElementById("metaCampaign").textContent = campaignName;
+      document.getElementById("metaPeriod").textContent = startDate && endDate ? `${formatDateBR(startDate)} a ${formatDateBR(endDate)}` : "—";
+      document.getElementById("metaTotalPosts").textContent = sortedPosts.length;
+      document.getElementById("metaStatus").textContent = warnings.length ? "Revisar ajustes" : "Pronto para aprovação";
+
+      document.getElementById("pdfBriefing").textContent = briefing || "Nenhum briefing informado.";
+
+      if (logoDataUrl) {
+        document.getElementById("pdfLogoWrap").innerHTML = `<img src="${logoDataUrl}" alt="Logo" />`;
+      } else {
+        document.getElementById("pdfLogoWrap").innerHTML = `<div class="logo-placeholder">MATCHIN</div>`;
+      }
+
+      if (warnings.length) {
+        document.getElementById("pdfWarnings").innerHTML = `
+          <div class="warning-box">
+            <strong>Pontos para revisão antes do envio:</strong><br />
+            ${warnings.map(item => `• ${item}`).join("<br />")}
+          </div>
+        `;
+      } else {
+        document.getElementById("pdfWarnings").innerHTML = "";
+      }
+
+      if (!sortedPosts.length) {
+        document.getElementById("calendarTableWrap").innerHTML = `<div class="empty-state">O calendário aparecerá aqui depois da geração.</div>`;
+      } else {
+        document.getElementById("calendarTableWrap").innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Horário</th>
+                <th>Influenciador</th>
+                <th>Formato</th>
+                <th>Observações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sortedPosts.map(post => `
+                <tr>
+                  <td><strong>${formatDateBR(post.date)}</strong></td>
+                  <td>${post.time || "—"}</td>
+                  <td>${escapeHtml(post.influencerName || "—")}</td>
+                  <td><span class="tag">${escapeHtml(post.format || "—")}</span></td>
+                  <td>${escapeHtml(post.notes || "—")}</td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        `;
+      }
+
+      if (guideFiles.length) {
+        document.getElementById("pdfAttachments").innerHTML = Array.from(guideFiles).map(file => `
+          <div class="attachment-item">
+            <span>${escapeHtml(file.name)}</span>
+            <span>${formatFileSize(file.size)}</span>
+          </div>
+        `).join("");
+      } else {
+        document.getElementById("pdfAttachments").innerHTML = `
+          <div class="attachment-item">
+            <span>Nenhum arquivo anexado.</span>
+            <span>—</span>
+          </div>
+        `;
+      }
+    }
+
+    function exportPDF() {
+      renderPreview();
+
+      const campaignName = document.getElementById("campaignName").value.trim() || "calendario-matchin";
+      const element = document.getElementById("pdfArea");
+
+      const options = {
+        margin: [8, 8, 8, 8],
+        filename: `${slugify(campaignName)}.pdf`,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: ["avoid-all", "css", "legacy"] }
+      };
+
+      html2pdf().set(options).from(element).save();
+    }
+
+    function formatFileSize(bytes) {
+      if (!bytes) return "—";
+      const kb = bytes / 1024;
+      if (kb < 1024) return `${kb.toFixed(1)} KB`;
+      return `${(kb / 1024).toFixed(1)} MB`;
+    }
+
+    function slugify(text) {
+      return text
+        .toString()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)+/g, "");
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    document.getElementById("campaignLogo").addEventListener("change", event => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = e => {
+        logoDataUrl = e.target.result;
+        renderPreview();
+      };
+      reader.readAsDataURL(file);
+    });
+
+    ["campaignName", "startDate", "endDate", "defaultTime", "brandBlockedDates", "briefingText", "guideFile"].forEach(id => {
+      document.getElementById(id).addEventListener("input", renderPreview);
+      document.getElementById(id).addEventListener("change", renderPreview);
+    });
+
+    addInfluencer();
+    renderPreview();
+  </script>
+</body>
+</html>
